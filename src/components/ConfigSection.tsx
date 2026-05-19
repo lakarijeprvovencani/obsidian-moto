@@ -27,7 +27,9 @@ const colors = [
     name: "Vantablack",
     hex: "#000000",
     price: 1200,
-    filter: "brightness(0.55) saturate(0)",
+    // Subtle deepen: kill the blue rim lighting and add contrast so the bike
+    // reads as truly black, but keep midtones bright enough to see the shape.
+    filter: "brightness(0.88) contrast(1.18) saturate(0)",
     glow: "rgba(255,255,255,0.08)",
   },
   {
