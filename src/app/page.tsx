@@ -5,7 +5,6 @@ import BuildSection from "@/components/BuildSection";
 import ConfigSection from "@/components/ConfigSection";
 import ReviewsSection from "@/components/ReviewsSection";
 import StartEngine from "@/components/StartEngine";
-import RideAway from "@/components/RideAway";
 import FinalCTA from "@/components/FinalCTA";
 import Footer from "@/components/Footer";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -21,7 +20,6 @@ export default function Home() {
         <ConfigSection />
         <ReviewsSection />
         <StartEngine />
-        <RideAway />
         <FinalCTA />
         <Footer />
       </main>
