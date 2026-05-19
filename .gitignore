@@ -24,6 +24,14 @@
 .DS_Store
 *.pem
 
+# raw source assets — 192MB of original frames + videos kept locally,
+# the processed /public versions are the source of truth on git.
+/assets/
+
+# Claude Code memory + project metadata
+/memory/
+/.claude/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
