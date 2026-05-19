@@ -10,8 +10,8 @@ import {
 import RevealWords from "./effects/RevealWords";
 
 // Section narrative: the customer just pressed the ignition above.
-// Now the bike rolls out into the world — road scrolls underneath, speed
-// lines streak past, bike pulls toward the horizon and recedes.
+// Now the bike rolls out into the world — speed lines streak past and the
+// bike pulls toward the horizon and recedes.
 
 export default function RideAway() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -71,7 +71,7 @@ export default function RideAway() {
       style={{ height: "200vh" }}
     >
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* Atmosphere — slight upward gradient suggests sky-over-road */}
+        {/* Atmosphere — slight upward gradient adds depth to the void */}
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-950 via-black to-zinc-950 pointer-events-none" />
 
         {/* Vignette so the action concentrates around the bike */}
@@ -180,10 +180,6 @@ export default function RideAway() {
           style={{ opacity: tailOpacity }}
           className="absolute top-[44%] left-[80%] w-24 h-24 rounded-full bg-red-500/60 blur-2xl pointer-events-none"
         />
-
-        {/* Horizon-line glow at the bottom — accent strip implies headlight
-           reflecting off asphalt up ahead. */}
-        <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-accent/8 to-transparent pointer-events-none" />
 
         {/* Scroll hint at bottom */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20 pointer-events-none">
