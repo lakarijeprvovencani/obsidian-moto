@@ -176,7 +176,16 @@ export default function RideAway() {
           <motion.img
             src="/frames/f001.jpg"
             alt=""
-            style={{ filter: bikeFilter }}
+            style={{
+              filter: bikeFilter,
+              // Fade out the baked-in showroom-floor reflection at the bottom
+              // of the source frame so the bike reads as sitting on our road,
+              // not on a polished studio floor.
+              maskImage:
+                "linear-gradient(to bottom, black 0%, black 64%, transparent 86%)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, black 0%, black 64%, transparent 86%)",
+            }}
             className="w-[60vw] max-w-[1100px] aspect-[3/2] object-contain"
             draggable={false}
           />
