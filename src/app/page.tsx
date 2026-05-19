@@ -4,7 +4,7 @@ import ScrollShowcase from "@/components/ScrollShowcase";
 import BuildSection from "@/components/BuildSection";
 import ConfigSection from "@/components/ConfigSection";
 import ReviewsSection from "@/components/ReviewsSection";
-import ModelsGrid from "@/components/ModelsGrid";
+import StartEngine from "@/components/StartEngine";
 import FinalCTA from "@/components/FinalCTA";
 import Footer from "@/components/Footer";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -19,7 +19,7 @@ export default function Home() {
         <BuildSection />
         <ConfigSection />
         <ReviewsSection />
-        <ModelsGrid />
+        <StartEngine />
         <FinalCTA />
         <Footer />
       </main>
