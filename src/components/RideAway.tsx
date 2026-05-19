@@ -39,9 +39,6 @@ export default function RideAway() {
   );
   const bikeFilter = useMotionTemplate`blur(${bikeBlurPx}px)`;
 
-  // Road centre line: scrolls hard to the left as the page advances so it
-  // reads as the bike covering ground.
-  const roadX = useTransform(scrollYProgress, [0, 1], [0, -2400]);
   // Two parallax layers of speed lines — far/slow and near/fast — sell depth.
   const farX = useTransform(scrollYProgress, [0, 1], [0, -1400]);
   const nearX = useTransform(scrollYProgress, [0, 1], [0, -3400]);
@@ -148,20 +145,6 @@ export default function RideAway() {
           })}
         </motion.div>
 
-        {/* Road — sits at the bike's ground line; the dashed centre line
-           scrolls hard to the left. We also stack a thin solid edge to imply
-           the far side of the road. */}
-        <div className="absolute left-0 right-0 top-[71%] pointer-events-none">
-          <div className="relative h-12 overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-px bg-white/15" />
-            <motion.div
-              style={{ x: roadX }}
-              className="absolute top-[55%] left-0 h-[2px] w-[300%] bg-[length:96px_2px] bg-[linear-gradient(90deg,_rgba(255,255,255,0.55)_0%,_rgba(255,255,255,0.55)_50%,_transparent_50%,_transparent_100%)] bg-repeat-x"
-            />
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
-          </div>
-        </div>
-
         {/* Bike — side view, drifts to the right and recedes */}
         <motion.div
           style={{
@@ -178,9 +161,9 @@ export default function RideAway() {
             alt=""
             style={{
               filter: bikeFilter,
-              // Fade out the baked-in showroom-floor reflection at the bottom
-              // of the source frame so the bike reads as sitting on our road,
-              // not on a polished studio floor.
+              // User asked to mask the studio-floor reflection baked into
+              // the source frame so the bottom of the bike doesn't show
+              // a second mirrored bike.
               maskImage:
                 "linear-gradient(to bottom, black 0%, black 64%, transparent 86%)",
               WebkitMaskImage:
