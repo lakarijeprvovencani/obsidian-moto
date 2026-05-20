@@ -295,16 +295,19 @@ See structure under §6.3 RIGHT. The progress bar uses a gradient + an inset sha
 ### 6.7 ConfigSection — `src/components/ConfigSection.tsx`
 
 - Eyebrow: `04 · Configurator`.
-- Background: `bg-[#0d0d0d] border-y border-white/5`.
+- Section element: `motion.section` with `border-y border-white/5 overflow-hidden`. **No static `bg-*` class.** The whole section's `backgroundColor` is animated based on the selected paint (see palette below) so the entire stage breathes the chosen colour, not just a corner halo.
 - 2-column layout (3/5 + 2/5).
-- **Left: bike preview that re-tints on color selection.** The bike is the same hero-bike.jpg, wrapped in a `motion.img` whose `filter` prop animates between CSS filter strings per color.
-  - Obsidian Matte: `filter: "none"`.
-  - Vantablack: `filter: "brightness(0.88) contrast(1.18) saturate(0)"`. **DO NOT push brightness lower than 0.85 or the bike disappears entirely.** The previous attempt at `0.55` made it invisible. We want it to read as "deeper than matte" without losing form.
-  - Gunmetal: `filter: "brightness(1.18) saturate(0.4) contrast(0.95)"`.
-  - Cobalt Blue: `filter: "hue-rotate(15deg) saturate(2.2) brightness(0.95)"` — shifts the rim lighting from sky-blue to deeper cobalt.
-- Behind the bike, an **ambient color halo** matches the selected paint: a full-section radial-gradient that crossfades via `AnimatePresence mode="sync"` keyed on `color.name`.
+- **Left: bike preview that re-tints on color selection.** The bike is the same `hero-bike.jpg`, wrapped in a `motion.img` whose `filter` prop animates between CSS filter strings per colour.
+- **Palette (4 swatches).** Each entry carries `{ filter, glow, bg, ring }`:
+  - **Obsidian Matte** (default, +€0) — `filter: "none"`, halo `rgba(59,130,246,0.18)`, section bg `#0d0d0d`, ring `rgba(255,255,255,0.55)`.
+  - **Cobalt Blue** (+€1500) — `filter: "hue-rotate(15deg) saturate(2.2) brightness(0.95)"`, halo `rgba(37,99,235,0.42)`, section bg `#0a0e1a`, ring `rgba(59,130,246,0.95)`. Shifts the rim lighting from sky-blue into deeper cobalt.
+  - **Phantom Green** (+€1800) — `filter: "hue-rotate(-80deg) saturate(2.0) brightness(0.95)"`, halo `rgba(16,185,129,0.38)`, section bg `#0a1410`, ring `rgba(16,185,129,0.95)`. Shifts the bike's blue rim accents (~220° hue) toward forest green; brightness held just under 1 so the matte body stays the centre of gravity.
+  - **Crimson Red** (+€1800) — `filter: "hue-rotate(140deg) saturate(2.2) brightness(0.95)"`, halo `rgba(239,68,68,0.42)`, section bg `#140a0a`, ring `rgba(239,68,68,0.95)`. Lands the original blue accents in the red/crimson band.
+  - Pure-black variants (Vantablack, Gunmetal) intentionally dropped — three statement chromatic finishes give the configurator more dramatic range; the matte-on-matte feel still survives in `Obsidian Matte` as the no-filter default. **Do NOT push brightness in any filter lower than 0.85 or the bike disappears entirely** — earlier `0.55` attempts went invisible.
+- **Whole-section bg morph.** The `motion.section`'s `animate={{ backgroundColor: color.bg }}` runs on the standard `[0.16, 1, 0.3, 1]` ease over 1.2s, so the stage wash transitions smoothly into the picked paint.
+- **Ambient halo on top of the bg.** A full-section `radial-gradient(ellipse at 30% 60%, ${color.glow} 0%, transparent 65%)` layered absolutely over the section, crossfading via `AnimatePresence mode="sync"` keyed on `color.name`. Sits ABOVE the bg morph and BELOW the content, so the section reads as a layered colour-themed stage.
 - **Right: configurator stack.**
-  - Color row: 4 swatch circles. Active swatch has a `border-accent shadow-[0_0_16px_rgba(59,130,246,0.5)]` ring outside the swatch.
+  - Color row: 4 swatch circles. The active swatch's outer ring + glow is **colour-matched to the swatch** via the per-colour `ring` field (`borderColor` + `boxShadow: 0 0 16px <ring>`) — picking green or red shows a green or red selection ring, not a generic blue accent.
   - Exhaust row: 3 wide buttons (`Standard Dual` / `Titanium Slash-cut +€2400` / `Carbon Fiber Racing +€3100`). Active button highlight uses **framer-motion `layoutId`** so the accent fill slides between options like a magic-move.
   - Seat row: 2 wide buttons (`Premium Leather` / `Alcantara Sport +€450`). Same layoutId pattern (different id from exhaust).
   - Total row: `Total` label + €amount that **counts smoothly between previous and new totals** (use `useMotionValue` + `animate(mv, value, { duration: 0.55, ease: [0.16, 1, 0.3, 1] })` + `useTransform(mv, v => Math.round(v).toLocaleString())`).
@@ -535,7 +538,7 @@ These were learned by burning iterations. Don't skip.
 
 16. **First two sections (ScrollShowcase + Hero) are LOCKED once they look right.** They're load-bearing — every other section's visual rhythm is calibrated against them. Resist the urge to "improve" them after the page is otherwise done; it will cascade.
 
-17. **All bike imagery is matte black on a black background.** This is the whole visual premise of the brand. Don't add colored overlays, don't tint with `hue-rotate` unless the user explicitly picks Cobalt Blue in the configurator.
+17. **All bike imagery is matte black on a black background outside the configurator.** This is the brand's resting visual premise — every other section (ScrollShowcase, Hero, BuildSection, ReviewsSection, Pillars, StartEngine, FinalCTA) renders the bike untinted. Inside `ConfigSection` only, the user can pick one of three saturated finishes (Cobalt Blue, Phantom Green, Crimson Red) which apply a `hue-rotate`-based filter AND morph the section's `backgroundColor` into a deep tint of that paint. Do NOT spread those `hue-rotate` filters or coloured section backgrounds to any other section, and do NOT add a fifth swatch without an equally restrained matte / muted option to balance the palette.
 
 18. **`whileInView` doesn't work for sticky-pinned crossfade scenes.** When you stack absolute-positioned scenes inside a `sticky top-0 h-screen` stage driven by `useScroll`, every scene is technically "in view" the entire time the section is pinned — so any `whileInView` triggered animation (notably `<RevealWords />`) fires for ALL scenes at the moment the section first enters the viewport, long before scenes 2/3 are actually visible. The entrance animation for each scene is its `useTransform`-driven `opacity` (and `y`) ramp; the crossfade IS the reveal. If you need to trigger imperative effects (sounds, counters, etc.) when a scene becomes active, reach for `useMotionValueEvent(scrollYProgress, "change", …)` and gate on the scene's range instead.
 

@@ -13,38 +13,57 @@ import Reveal from "./effects/Reveal";
 import RevealWords from "./effects/RevealWords";
 import { cn } from "@/lib/utils";
 
-// Each color carries a CSS filter that re-tints the bike image — the same
-// matte black silhouette, shifted in hue + saturation to suggest the swatch.
+// Each color carries:
+//   - `filter`: a CSS filter that re-tints the bike image (same matte black
+//     silhouette, hue-shifted so its blue rim lighting reads as the swatch
+//     colour).
+//   - `glow`:  the radial-gradient halo bloom drifting behind the section.
+//   - `bg`:    a deep, very subtle full-section backgroundColor tint that
+//     morphs in over ~1s when the swatch is picked, so the whole stage
+//     "breathes" the chosen paint instead of only the corner halo.
+//   - `ring`:  the colour of the swatch's active selection ring — keeps the
+//     focus state legible across the saturated palette.
 const colors = [
   {
     name: "Obsidian Matte",
     hex: "#111111",
     price: 0,
     filter: "none",
-    glow: "rgba(59,130,246,0.25)",
-  },
-  {
-    name: "Vantablack",
-    hex: "#000000",
-    price: 1200,
-    // Subtle deepen: kill the blue rim lighting and add contrast so the bike
-    // reads as truly black, but keep midtones bright enough to see the shape.
-    filter: "brightness(0.88) contrast(1.18) saturate(0)",
-    glow: "rgba(255,255,255,0.08)",
-  },
-  {
-    name: "Gunmetal",
-    hex: "#3a3f48",
-    price: 800,
-    filter: "brightness(1.18) saturate(0.4) contrast(0.95)",
-    glow: "rgba(180,200,220,0.18)",
+    glow: "rgba(59,130,246,0.18)",
+    bg: "#0d0d0d",
+    ring: "rgba(255,255,255,0.55)",
   },
   {
     name: "Cobalt Blue",
     hex: "#1e3a8a",
     price: 1500,
     filter: "hue-rotate(15deg) saturate(2.2) brightness(0.95)",
-    glow: "rgba(37,99,235,0.4)",
+    glow: "rgba(37,99,235,0.42)",
+    bg: "#0a0e1a",
+    ring: "rgba(59,130,246,0.95)",
+  },
+  {
+    name: "Phantom Green",
+    hex: "#0d3a26",
+    price: 1800,
+    // Shift the bike's existing blue rim lighting (~220° hue) toward forest
+    // green by rotating −80° and pumping saturation; brightness slightly down
+    // so the matte body stays the centre of gravity.
+    filter: "hue-rotate(-80deg) saturate(2.0) brightness(0.95)",
+    glow: "rgba(16,185,129,0.38)",
+    bg: "#0a1410",
+    ring: "rgba(16,185,129,0.95)",
+  },
+  {
+    name: "Crimson Red",
+    hex: "#7a1c1c",
+    price: 1800,
+    // Blue rim → red rim: hue-rotate(140deg) lands the original blue accents
+    // in the red/crimson band.
+    filter: "hue-rotate(140deg) saturate(2.2) brightness(0.95)",
+    glow: "rgba(239,68,68,0.42)",
+    bg: "#140a0a",
+    ring: "rgba(239,68,68,0.95)",
   },
 ] as const;
 
@@ -84,9 +103,14 @@ export default function ConfigSection() {
   const totalPrice = 34900 + color.price + exhaust.price + seat.price;
 
   return (
-    <section
+    <motion.section
       id="custom-builds"
-      className="relative py-28 md:py-44 bg-[#0d0d0d] border-y border-white/5 overflow-hidden"
+      // Whole-section bg morphs into the selected paint's deep tint — the
+      // ambient halo is layered ON TOP of this so the section reads as one
+      // colour-themed stage instead of "neutral panel + corner glow".
+      animate={{ backgroundColor: color.bg }}
+      transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+      className="relative py-28 md:py-44 border-y border-white/5 overflow-hidden"
     >
       {/* Color-aware ambient glow tracks the selected paint */}
       <AnimatePresence mode="sync">
@@ -167,13 +191,19 @@ export default function ConfigSection() {
                       )}
                       style={{ backgroundColor: c.hex }}
                     >
+                      {/* Selection ring — colour-matched to the swatch so a
+                          green / red / blue pick reads as that colour, not a
+                          generic accent. */}
                       <span
-                        className={cn(
-                          "absolute -inset-1.5 rounded-full border transition-all",
+                        className="absolute -inset-1.5 rounded-full border transition-all"
+                        style={
                           active
-                            ? "border-accent shadow-[0_0_16px_rgba(59,130,246,0.5)]"
-                            : "border-transparent"
-                        )}
+                            ? {
+                                borderColor: c.ring,
+                                boxShadow: `0 0 16px ${c.ring}`,
+                              }
+                            : { borderColor: "transparent" }
+                        }
                       />
                       <span className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/10" />
                     </button>
@@ -286,6 +316,6 @@ export default function ConfigSection() {
           </div>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
