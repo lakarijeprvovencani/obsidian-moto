@@ -43,19 +43,30 @@ function Caption({
 }) {
   const opacity = useTransform(scrollYProgress, caption.range, [0, 1, 1, 0]);
   const y = useTransform(scrollYProgress, caption.range, [40, 0, 0, -40]);
+  const isLeftSide = caption.side === "left";
   return (
     <motion.div
       style={{ opacity, y }}
-      className={
-        caption.side === "left"
-          ? "absolute left-6 md:left-12 lg:left-20 top-1/2 -translate-y-1/2 max-w-md z-10"
-          : "absolute right-6 md:right-12 lg:right-20 top-1/2 -translate-y-1/2 max-w-md text-right z-10"
-      }
+      // Mobile-first: caption stacks at the TOP of the sticky stage with full
+      // viewport width (minus padding) so the bike video below has the rest
+      // of the screen to itself — no more empty band above and a tiny bike
+      // in the middle. Desktop reverts to the original side-placement at
+      // vertical center, exactly as before.
+      className={[
+        "absolute z-10",
+        // Mobile placement
+        "inset-x-6 top-[12%] max-w-none",
+        // Desktop placement (md:+)
+        "md:inset-x-auto md:top-1/2 md:-translate-y-1/2 md:max-w-md",
+        isLeftSide
+          ? "md:left-12 lg:left-20"
+          : "md:right-12 lg:right-20 md:text-right",
+      ].join(" ")}
     >
-      <div className="text-[10px] uppercase tracking-[0.3em] text-accent font-mono mb-4">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-accent font-mono mb-3 md:mb-4">
         {caption.eyebrow}
       </div>
-      <h2 className="font-serif italic text-5xl md:text-6xl lg:text-7xl leading-[0.95] tracking-[-0.03em] whitespace-pre-line mb-6">
+      <h2 className="font-serif italic text-4xl md:text-6xl lg:text-7xl leading-[0.95] tracking-[-0.03em] whitespace-pre-line mb-4 md:mb-6">
         {caption.title}
       </h2>
       <p className="text-sm md:text-base text-white/55 leading-relaxed font-light">
@@ -142,23 +153,33 @@ export default function ScrollShowcase() {
   return (
     <section
       ref={sectionRef}
-      className="relative bg-black"
-      style={{ height: "260vh" }}
+      // Shorter section on mobile so the user doesn't scroll through a long
+      // mostly-empty stretch (260vh felt vast on a 9:16 viewport because the
+      // 3:2 video letterboxes into the middle). 200vh still gives the scroll
+      // narrative + 3 captions plenty of room to breathe.
+      className="relative bg-black h-[200vh] md:h-[260vh]"
     >
       <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center">
         <motion.div
           style={{ scale: bikeScale }}
           className="relative w-full h-full flex items-center justify-center"
         >
-          <video
-            ref={videoRef}
-            src={VIDEO_SRC}
-            muted
-            playsInline
-            preload="auto"
-            disablePictureInPicture
-            className="absolute inset-0 w-full h-full object-contain"
-          />
+          {/* Mobile bike scale-up: the source is 3:2 (1764×1176) with a lot
+              of empty matte black around the bike, so on portrait phones we
+              scale the video container 1.45× and let the safe black margins
+              flow off-screen. Net result: the bike actually fills the frame
+              instead of sitting tiny in the middle. Desktop unchanged. */}
+          <div className="absolute inset-0 scale-[1.45] md:scale-100">
+            <video
+              ref={videoRef}
+              src={VIDEO_SRC}
+              muted
+              playsInline
+              preload="auto"
+              disablePictureInPicture
+              className="absolute inset-0 w-full h-full object-contain"
+            />
+          </div>
         </motion.div>
 
         {captions.map((c, i) => (
