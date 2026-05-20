@@ -10,23 +10,34 @@ import {
 
 const VIDEO_SRC = "/bike-rotation.mp4";
 
+// Caption ranges live INSIDE the pinning window. With
+// `useScroll({ offset: ["start end", "end start"] })` on a 200vh+
+// section pinned via `sticky top-0 h-screen`, the inner stage is
+// only fully visible/pinned between progress ~0.33 and ~0.67
+// (entry phase 0 → 0.33 + pinning 0.33 → 0.67 + exit phase 0.67 → 1).
+// We pin caption dwell zones inside that 0.33–0.67 window so the
+// first caption is at full opacity exactly when the user first sees
+// the pinned bike, and the last caption stays at full opacity until
+// the section starts leaving. Combined with the isFirst/isLast
+// opacity clamps in Caption(), this avoids any half-faded text at
+// the edges of the section.
 const captions = [
   {
-    range: [0, 0.05, 0.28, 0.38] as [number, number, number, number],
+    range: [0, 0.05, 0.42, 0.46] as [number, number, number, number],
     side: "left" as const,
     eyebrow: "Obsidian K7 · 2024",
     title: "The blackest\nride.",
     body: "Hand-built custom. Matte black on dark chrome. Limited to 24 units worldwide.",
   },
   {
-    range: [0.36, 0.46, 0.58, 0.68] as [number, number, number, number],
+    range: [0.42, 0.46, 0.54, 0.58] as [number, number, number, number],
     side: "right" as const,
     eyebrow: "01 · Powertrain",
     title: "1923cc.\nHand-tuned.",
     body: "An air-cooled V-Twin built for torque you feel in your chest.",
   },
   {
-    range: [0.64, 0.74, 0.86, 0.96] as [number, number, number, number],
+    range: [0.54, 0.58, 0.95, 1] as [number, number, number, number],
     side: "left" as const,
     eyebrow: "02 · Finish",
     title: "Matte. Black.\nForever.",
