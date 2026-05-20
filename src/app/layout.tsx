@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import CustomCursor from "@/components/effects/CustomCursor";
+import BootSplash from "@/components/effects/BootSplash";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,6 +38,8 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${instrumentSerif.variable} ${geistMono.variable} font-sans bg-[#0a0a0a] text-white antialiased selection:bg-blue-500/30`}
       >
+        <BootSplash />
+        <CustomCursor />
         {children}
       </body>
     </html>

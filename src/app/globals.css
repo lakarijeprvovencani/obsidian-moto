@@ -67,3 +67,17 @@ html.lenis, html.lenis body {
   scrollbar-width: none;
 }
 
+/* Hide the native cursor on hover-capable devices so the custom cursor takes
+   over. Touch / coarse-pointer devices keep their default behaviour. */
+@media (hover: hover) and (pointer: fine) {
+  html,
+  body {
+    cursor: none;
+  }
+  /* Force-hide on everything except text inputs so users keep an I-beam where
+     they're actually going to type. */
+  body *:not(input):not(textarea):not([contenteditable="true"]) {
+    cursor: none !important;
+  }
+}
+
