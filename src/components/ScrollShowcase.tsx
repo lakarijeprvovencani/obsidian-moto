@@ -37,12 +37,34 @@ const captions = [
 function Caption({
   scrollYProgress,
   caption,
+  index,
+  total,
 }: {
   scrollYProgress: ReturnType<typeof useScroll>["scrollYProgress"];
   caption: (typeof captions)[number];
+  index: number;
+  total: number;
 }) {
-  const opacity = useTransform(scrollYProgress, caption.range, [0, 1, 1, 0]);
-  const y = useTransform(scrollYProgress, caption.range, [40, 0, 0, -40]);
+  // First caption stays visible from the moment the section enters the
+  // viewport (no fade-in dead zone — without this the section reads as
+  // an empty bike for the first ~5% of scroll). Last caption stays
+  // visible until the section leaves the viewport (no fade-out dead
+  // zone at the end). Middle captions still cross-fade on both sides.
+  const isFirst = index === 0;
+  const isLast = index === total - 1;
+  const opacityOut: [number, number, number, number] = isFirst
+    ? [1, 1, 1, 0]
+    : isLast
+    ? [0, 1, 1, 1]
+    : [0, 1, 1, 0];
+  const yOut: [number, number, number, number] = isFirst
+    ? [0, 0, 0, -40]
+    : isLast
+    ? [40, 0, 0, 0]
+    : [40, 0, 0, -40];
+
+  const opacity = useTransform(scrollYProgress, caption.range, opacityOut);
+  const y = useTransform(scrollYProgress, caption.range, yOut);
   const isLeftSide = caption.side === "left";
   return (
     <motion.div
@@ -166,10 +188,12 @@ export default function ScrollShowcase() {
         >
           {/* Mobile bike scale-up: the source is 3:2 (1764×1176) with a lot
               of empty matte black around the bike, so on portrait phones we
-              scale the video container 1.45× and let the safe black margins
-              flow off-screen. Net result: the bike actually fills the frame
-              instead of sitting tiny in the middle. Desktop unchanged. */}
-          <div className="absolute inset-0 scale-[1.45] md:scale-100">
+              scale the video container 1.25× and let the safe black margins
+              flow off-screen. We keep the multiplier conservative so the
+              bike's wheels never crop, even when it composes with the
+              parent's `bikeScale` peak of ~1.02 (effective ~1.28× max).
+              Desktop unchanged. */}
+          <div className="absolute inset-0 scale-[1.25] md:scale-100">
             <video
               ref={videoRef}
               src={VIDEO_SRC}
@@ -183,7 +207,13 @@ export default function ScrollShowcase() {
         </motion.div>
 
         {captions.map((c, i) => (
-          <Caption key={i} scrollYProgress={scrollYProgress} caption={c} />
+          <Caption
+            key={i}
+            scrollYProgress={scrollYProgress}
+            caption={c}
+            index={i}
+            total={captions.length}
+          />
         ))}
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20">
