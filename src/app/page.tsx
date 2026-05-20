@@ -4,6 +4,7 @@ import ScrollShowcase from "@/components/ScrollShowcase";
 import BuildSection from "@/components/BuildSection";
 import ConfigSection from "@/components/ConfigSection";
 import ReviewsSection from "@/components/ReviewsSection";
+import Pillars from "@/components/Pillars";
 import StartEngine from "@/components/StartEngine";
 import FinalCTA from "@/components/FinalCTA";
 import Footer from "@/components/Footer";
@@ -33,6 +34,9 @@ export default function Home() {
         </div>
         <div id="press">
           <ReviewsSection />
+        </div>
+        <div id="pillars">
+          <Pillars />
         </div>
         <div id="ignition">
           <StartEngine />

@@ -129,7 +129,7 @@ Use **`[0.16, 1, 0.3, 1]`** (cubic-bezier) as the default `ease` for every entra
 src/
 ├── app/
 │   ├── layout.tsx          # Root layout. Mounts BootSplash + CustomCursor.
-│   ├── page.tsx            # Composes the 8 sections + SectionNav.
+│   ├── page.tsx            # Composes the 9 sections + SectionNav.
 │   ├── globals.css         # Tailwind v4 @theme + global cursor:none rules.
 │   └── favicon.ico
 ├── components/
@@ -141,8 +141,9 @@ src/
 │   ├── BuildSection.tsx    # SECTION 3 — "Built by hand. Not by machine."
 │   ├── ConfigSection.tsx   # SECTION 4 — color/exhaust/seat configurator.
 │   ├── ReviewsSection.tsx  # SECTION 5 — press cards + marquee logos.
-│   ├── StartEngine.tsx     # SECTION 6 — physical ignition button + dealer reveal.
-│   ├── FinalCTA.tsx        # SECTION 7 — aurora bg + email form.
+│   ├── Pillars.tsx         # SECTION 6 — sticky 3-scene scroll crossfade (Power / Refined / Yours).
+│   ├── StartEngine.tsx     # SECTION 7 — physical ignition button + dealer reveal.
+│   ├── FinalCTA.tsx        # SECTION 8 — aurora bg + email form.
 │   ├── Footer.tsx          # Big OBSIDIAN wordmark + 4-col links.
 │   ├── SmoothScroll.tsx    # Lenis wrapper.
 │   └── effects/
@@ -176,6 +177,7 @@ public/
     <div id="craft">            <BuildSection /></div>
     <div id="paint">            <ConfigSection /></div>
     <div id="press">            <ReviewsSection /></div>
+    <div id="pillars">          <Pillars /></div>
     <div id="ignition">         <StartEngine /></div>
     <div id="subscribe">        <FinalCTA /></div>
     <Footer />
@@ -326,11 +328,56 @@ See structure under §6.3 RIGHT. The progress bar uses a gradient + an inset sha
   - Left + right edge fade strips so logos don't appear/disappear abruptly: `bg-gradient-to-r from-[#0a0a0a] to-transparent`.
   - Example list: `MOTOR TREND · RIDE MAGAZINE · CYCLE WORLD · BIKE EXIF · ASPHALT & RUBBER · ROBB REPORT · GQ · WALLPAPER*`.
 
-### 6.9 StartEngine — `src/components/StartEngine.tsx`
+### 6.9 Pillars — `src/components/Pillars.tsx`
+
+A sticky scroll-pinned section that morphs through three brand pillars (Power → Refined → Yours) as the user scrolls. The whole stage stays fixed at `top-0` while the surrounding section scrolls past it, so the user feels they're "tuning" a single canvas through three states instead of moving between three separate sections.
+
+- Eyebrow: `06 · Pillars`.
+- Outer section: `relative h-[300vh]`, with `backgroundColor` animated by `useTransform` (see below). **Do NOT add `overflow-hidden` here** — it creates a block-formatting context that breaks `position: sticky` on the child stage and the text scrolls away instead of pinning. See §8 gotcha 19.
+- Inner stage: `sticky top-0 h-screen overflow-hidden` — this is what the user actually sees while pinned, and it's the layer that clips the per-scene radial glows.
+- Scroll driver: `useScroll({ target: sectionRef, offset: ["start end", "end start"] })` → `scrollYProgress`.
+- **Single source of truth for the crossfade overlap** between adjacent scenes — a top-level `const FADE = 0.05`. Both the per-scene ranges and the bg-color stops below derive from `FADE`, so each tint peaks exactly while its scene is fully visible and the crossfade between tints lines up frame-for-frame with the crossfade between scenes. A pre-fix version had hardcoded bg stops that drifted out of phase from the scene ranges and the misalignment read as a perceptible "lag" between the text and the color. Don't reintroduce that.
+- **8-stop background color morph**, derived from `FADE` and `slot = 1 / scenes.length`:
+  ```ts
+  useTransform(scrollYProgress,
+    [
+      0,
+      FADE,
+      slot - FADE,
+      slot + FADE,
+      2 * slot - FADE,
+      2 * slot + FADE,
+      1 - FADE,
+      1,
+    ],
+    [
+      "#0a0a0a",
+      "#170a0a", // scene 1 — warm crimson tint
+      "#170a0a",
+      "#0a0c1a", // scene 2 — cool navy tint
+      "#0a0c1a",
+      "#091a10", // scene 3 — deep emerald tint
+      "#091a10",
+      "#0a0a0a",
+    ])
+  ```
+  Both bookend stops are the site's default `#0a0a0a` so the section joins seamlessly with `ReviewsSection` above and `StartEngine` below.
+- **Three scene layers** stacked `absolute inset-0` inside the sticky stage, each crossfading via per-scene `opacity` + `y` `useTransform`s. Each scene owns one third of the section's vertical travel; the same `FADE` constant carves out small overlap zones at the borders so scenes crossfade rather than snap. The shape of every per-scene range is `[start − FADE, start + FADE, end − FADE, end + FADE]` mapped to `[0, 1, 1, 0]` for opacity and `[60, 0, 0, −60]` for `y`.
+- **Scene content** (each scene has the same layout — text left, big stat right). Render the right column as just the big serif-italic stat number + mono suffix + mono caption — **no decorative icon / icon-circle**. An earlier version had a small accent-tinted icon circle above each stat; we dropped it because it competed with the giant numeral and dirtied the otherwise clean editorial right-column. Keep it pure.
+  - `01 · Power` — two-line italic headline (`Power` / `you can feel.`), body about the 1923cc V-Twin, big serif italic `86` + mono `HP`, mono caption `Max output · 7,200 rpm`. Tint: crimson (`#ef4444`).
+  - `02 · Refined` — headline (`Refined` / `by hand.`), body about hand-laid carbon + ceramic coating, big serif italic `312` + mono `parts`, mono caption `Hand-assembled · zero outsourcing`. Tint: navy (`#3b82f6`).
+  - `03 · Yours` — headline (`Yours` / `alone.`), body about the 24-unit allocation, big serif italic `1 / 24` (no suffix), mono caption `Lifetime allocation`. Tint: emerald (`#10b981`).
+- **Headline note:** the scene titles deliberately render as plain italic markup (line 1 white, line 2 `text-white/40`) **without** `<RevealWords />`. All three scenes are absolutely positioned inside the same sticky stage, so `whileInView` would fire every word stagger the instant the section first enters the viewport — long before scenes 2 and 3 are actually visible. The crossfade (opacity + y) is the entrance animation. See §8 gotcha 18.
+- **Pinned top row** — section eyebrow `06 · Pillars` on the left, three progress dots on the right. Each dot's `width` is a `useTransform` driven by its scene range `[8, 28, 28, 8]` so the active scene's dot widens to 28 px while inactive ones sit at 8 px.
+- **Per-scene glow layer** — full-bleed `motion.div` with `mix-blend-screen` and `background: radial-gradient(ellipse 80vw 60vh at 50% 50%, <scene.glow> 0%, transparent 65%)`, opacity driven by the same scene range so the tint blooms in and out with the scene.
+- **Pinned bottom progress strip** — `SCROLL · PILLARS` mono label + a 96 px line whose `scaleX = scrollYProgress` (origin left). Same visual rhythm as ScrollShowcase's bottom strip.
+- All Framer Motion plumbing (`useScroll`, `useTransform`) is SSR-safe in Framer Motion 12, and the component does not read any client-only globals at module scope. No `Math.random()` anywhere (see §8 gotcha 6).
+
+### 6.10 StartEngine — `src/components/StartEngine.tsx`
 
 This is the page's emotional climax. It replaces the standard "Other Models" grid you'd find on most dealer sites — because Obsidian Moto only sells the K7. The customer's last action on the page is to **press a physical-looking ignition button**, which triggers a state machine that ends with the dealer's contact details.
 
-- Eyebrow: `06 · Ignition`.
+- Eyebrow: `07 · Ignition`.
 - Background: `bg-[#0a0a0a]`, with a **state-driven ambient glow** behind the button: cool-blue radial gradient while idle, warm-red radial gradient once the engine is running.
 - Layout: 2-column (text left, button right). Headline: `Start / your engine.` (RevealWords). Body: "One push of the button is the only paperwork. We'll line up financing, a test ride at the workshop, and a build slot in the next quarterly cohort."
 - **The button** (this is the hero element of the section — render it with care):
@@ -362,7 +409,7 @@ This is the page's emotional climax. It replaces the standard "Other Models" gri
   - `Mail` · Send a request · `build@obsidianmoto.com` · `Reply within the hour, every hour.`
   - Each card: `bg-[#121212] border border-white/10 rounded-2xl p-6` with an accent icon circle, mono label, big serif italic value, small muted sub, and a `Continue →` row at the bottom that lights up to accent on hover.
 
-### 6.10 FinalCTA — `src/components/FinalCTA.tsx`
+### 6.11 FinalCTA — `src/components/FinalCTA.tsx`
 
 - Background: `bg-[#0a0a0a]`.
 - **Drifting aurora bg** — two large radial-gradient blurred blobs (one accent-blue, one violet at lower opacity) that translate + rotate on slow 18–22s infinite loops. `mix-blend` not needed; rely on blur + opacity.
@@ -373,7 +420,7 @@ This is the page's emotional climax. It replaces the standard "Other Models" gri
 - Email form: `bg-black/40 border border-white/15 backdrop-blur-sm` input + `Notify Me` white button that flips to accent on hover.
 - 3 stat counters across the bottom: `<Counter to={124} />` Builds shipped · `<Counter to={18} />` Countries · `<Counter to={5} decimals={1} suffix="/5" />` Owner rating.
 
-### 6.11 Footer — `src/components/Footer.tsx`
+### 6.12 Footer — `src/components/Footer.tsx`
 
 - Background: `bg-black border-t border-white/10`.
 - **Giant brand wordmark** at the top — `font-serif italic text-[14vw] tracking-[-0.05em]` with `bg-gradient-to-b from-white/8 to-white/[0.02] bg-clip-text text-transparent`. Reads "OBSIDIAN" only. Decorative, `aria-hidden`.
@@ -490,6 +537,12 @@ These were learned by burning iterations. Don't skip.
 
 17. **All bike imagery is matte black on a black background.** This is the whole visual premise of the brand. Don't add colored overlays, don't tint with `hue-rotate` unless the user explicitly picks Cobalt Blue in the configurator.
 
+18. **`whileInView` doesn't work for sticky-pinned crossfade scenes.** When you stack absolute-positioned scenes inside a `sticky top-0 h-screen` stage driven by `useScroll`, every scene is technically "in view" the entire time the section is pinned — so any `whileInView` triggered animation (notably `<RevealWords />`) fires for ALL scenes at the moment the section first enters the viewport, long before scenes 2/3 are actually visible. The entrance animation for each scene is its `useTransform`-driven `opacity` (and `y`) ramp; the crossfade IS the reveal. If you need to trigger imperative effects (sounds, counters, etc.) when a scene becomes active, reach for `useMotionValueEvent(scrollYProgress, "change", …)` and gate on the scene's range instead.
+
+19. **`overflow-hidden` on a sticky element's parent will silently break the pin.** `position: sticky` resolves against its nearest scrollable ancestor; setting `overflow: hidden` on a parent makes that parent a clipping/containing block that effectively cancels the sticky behaviour on its descendants — the element behaves like a plain `relative` and scrolls away instead of pinning. This bites Pillars in particular (outer `motion.section` clips its colour halo, inner `sticky top-0 h-screen` does the actual pinning). Solution: keep `overflow-hidden` on the inner stage that needs to clip its glows, leave the outer scroll container at default `overflow: visible`. If you must clip the outer container too, switch to `overflow: clip` (Tailwind `overflow-clip`), which clips without creating a sticky-killing block-formatting context.
+
+20. **Keep scroll-section colour morphs phase-aligned with their scene crossfades.** When a sticky-pinned section animates both a `backgroundColor` (via `useTransform` on `scrollYProgress`) and a stack of crossfading content layers, derive the bg-colour stops from the same `FADE` (or equivalent overlap) constant the scene ranges use — see Pillars §6.9 for the shape. If the bg stops are hardcoded to different fractions of the scroll, the colour will lead or trail the text by ~5–10 % of the section's scroll distance and the user will read that as "the animation is laggy" even though every motion value is updating at 60 fps.
+
 ---
 
 ## 9. BUILD & DEPLOY
@@ -514,6 +567,6 @@ Deploys to Vercel with zero configuration. The MP4 + 60 JPGs total ~12 MB of sta
 
 If you want to drop this to an AI assistant as a single instruction:
 
-> Build a Next.js 16 + Tailwind v4 + Framer Motion 12 single-page landing for a fictional premium custom motorcycle brand called Obsidian Moto, following PROMPT.md exactly. The user will provide a folder of ~200 JPG frames of the bike rotating 360° and a ~7s MP4 of the same rotation. Process the assets per §1 (copy frames straight, re-encode video with `-g 1` for keyframe-on-every-frame scrubbing). Build the 8 sections in §6 in order, leaning on the effects toolkit in §7. Read §8 (gotchas) twice before writing the first line of `BikeViewer.tsx` or `ScrollShowcase.tsx`. Use `[0.16, 1, 0.3, 1]` as the universal easing. Don't `Math.random()` in render. Don't try to "improve" ScrollShowcase or Hero once they work.
+> Build a Next.js 16 + Tailwind v4 + Framer Motion 12 single-page landing for a fictional premium custom motorcycle brand called Obsidian Moto, following PROMPT.md exactly. The user will provide a folder of ~200 JPG frames of the bike rotating 360° and a ~7s MP4 of the same rotation. Process the assets per §1 (copy frames straight, re-encode video with `-g 1` for keyframe-on-every-frame scrubbing). Build the 9 sections in §6 in order, leaning on the effects toolkit in §7. Read §8 (gotchas) twice before writing the first line of `BikeViewer.tsx`, `ScrollShowcase.tsx`, or `Pillars.tsx`. Use `[0.16, 1, 0.3, 1]` as the universal easing. Don't `Math.random()` in render. Don't try to "improve" ScrollShowcase or Hero once they work.
 
 That's the whole brief. Go.

@@ -96,7 +96,7 @@ export default function StartEngine() {
       <div className="container mx-auto px-6 md:px-12 relative">
         <Reveal className="mb-4 flex items-center gap-3">
           <span className="text-[10px] uppercase tracking-[0.3em] text-accent font-mono">
-            06 · Ignition
+            07 · Ignition
           </span>
           <div className="h-px flex-1 max-w-[180px] bg-gradient-to-r from-accent/40 to-transparent" />
         </Reveal>

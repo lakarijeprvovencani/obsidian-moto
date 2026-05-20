@@ -10,6 +10,7 @@ const sections = [
   { id: "craft", label: "Craft" },
   { id: "paint", label: "Configurator" },
   { id: "press", label: "Press" },
+  { id: "pillars", label: "Pillars" },
   { id: "ignition", label: "Ignition" },
   { id: "subscribe", label: "Subscribe" },
 ] as const;
