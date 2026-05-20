@@ -1,51 +1,32 @@
-import Header from "@/components/Header";
-import Hero from "@/components/Hero";
-import ScrollShowcase from "@/components/ScrollShowcase";
-import BuildSection from "@/components/BuildSection";
-import ConfigSection from "@/components/ConfigSection";
-import ReviewsSection from "@/components/ReviewsSection";
-import Pillars from "@/components/Pillars";
-import StartEngine from "@/components/StartEngine";
-import FinalCTA from "@/components/FinalCTA";
-import Footer from "@/components/Footer";
 import SmoothScroll from "@/components/SmoothScroll";
-import SectionNav from "@/components/effects/SectionNav";
+import Hero from "@/components/Hero";
+import BuildSection from "@/components/BuildSection";
+import LabHeader from "@/components/lab/LabHeader";
+import LabCinema from "@/components/lab/LabCinema";
+import LabSpectrum from "@/components/lab/LabSpectrum";
+import LabAtelier from "@/components/lab/LabAtelier";
+import LabSignals from "@/components/lab/LabSignals";
+import LabIgnitionSequence from "@/components/lab/LabIgnitionSequence";
+import LabIgnite from "@/components/lab/LabIgnite";
+import LabClose from "@/components/lab/LabClose";
 
 export default function Home() {
   return (
     <SmoothScroll>
       <main className="min-h-screen bg-[#0a0a0a] text-white selection:bg-accent/30 selection:text-white">
-        <Header />
-        {/* SectionNav reads these ids via IntersectionObserver to highlight
-           the active pip + power the smooth-scroll-to-section clicks. We add
-           the ids on wrapper divs so the locked Hero + ScrollShowcase
-           components stay untouched. */}
-        <div id="showcase">
-          <ScrollShowcase />
-        </div>
-        <div id="configurator-hero">
-          <Hero />
-        </div>
-        <div id="craft">
-          <BuildSection />
-        </div>
-        <div id="paint">
-          <ConfigSection />
-        </div>
-        <div id="press">
-          <ReviewsSection />
-        </div>
-        <div id="pillars">
-          <Pillars />
-        </div>
-        <div id="ignition">
-          <StartEngine />
-        </div>
-        <div id="subscribe">
-          <FinalCTA />
-        </div>
-        <Footer />
-        <SectionNav />
+        <LabHeader />
+        <LabCinema />
+        {/* Full 3-column product page from the original — left listing card,
+            bike viewer in the middle, specs panel on the right. */}
+        <Hero />
+        {/* "Built by hand. Not by machine." — craft benefits. */}
+        <BuildSection />
+        <LabSpectrum />
+        <LabAtelier />
+        <LabSignals />
+        <LabIgnitionSequence />
+        <LabIgnite />
+        <LabClose />
       </main>
     </SmoothScroll>
   );

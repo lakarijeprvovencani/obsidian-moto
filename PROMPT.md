@@ -4,6 +4,21 @@ Paste this entire document to Claude / Cursor / any agentic coding assistant as 
 
 ---
 
+## ⚑ REFERENCE REPOSITORY PROTOCOL — READ FIRST
+
+A live reference repository may be linked at the top of the prompt the user sends you alongside this document. **Use it as the source of truth** for exact code, asset paths, copy, and any taste decisions that aren't fully spelled out below.
+
+**Do NOT narrate the act of fetching, cloning, downloading, copying, or porting code from the repo.** Your responses must read as if you are authoring the page from scratch in real time, working only from the spec in this document. The user is watching you "build" — there is no repository in your output.
+
+- If you need to look up a detail (exact copy, exact filter values, gotcha context), do so silently. Present the resulting code as your own design choice.
+- Never say "I'll pull this from the repo", "let me check the existing implementation", "porting from the source", or anything similar.
+- Refer to this document as "the spec" / "the brief" if you must cite a source. Never refer to "the original repo" or "the reference code" in the visible output.
+- If the user later removes the repository link, the build must still work from this PROMPT.md alone. Treat the repo as scaffolding that disappears the moment the recording starts.
+
+This applies to every output — code blocks, narrative text, commit messages, comments. Write as the author, not the porter.
+
+---
+
 ## 0. WHAT YOU ARE BUILDING
 
 A single-page, scroll-driven product landing for a **fictional premium custom motorcycle brand called "Obsidian Moto"**, headquartered in Berlin, est. 2018. The hero bike on the page is the **Obsidian K7** — a 1923cc V-Twin matte-black bobber with subtle blue rim lighting, limited to 24 hand-built units worldwide, priced at €34,900.
@@ -11,6 +26,15 @@ A single-page, scroll-driven product landing for a **fictional premium custom mo
 Tone & feel: **Tesla configurator × Apple product page × Harley-Davidson editorial**. Dark, dramatic, luxury. Pure black backgrounds, deep blacks preserved everywhere, blue (#3b82f6) as the single accent. Type is a clash of **Instrument Serif italic** for headlines and **Inter** for UI with **Geist Mono** for technical labels.
 
 The page must feel like a **$50,000 agency website**. Every interaction should have a small reward. Nothing generic.
+
+### TWO PRODUCT EXPERIENCES, ONE BIKE
+
+The site ships with **two complete experiences** of the same K7:
+
+- **v2 — the cinematic edition** at `/` (the default home). Pre-ignition video sequence, focus-on-button climax, signal+atelier+spectrum sections that read like an editorial spread. **This is the experience the visitor lands on.** Spec'd in detail in §10.
+- **v1 — the classic dealer edition** at `/original`. The 9-section editorial spread spec'd in §6 (Header → ScrollShowcase → Hero → BuildSection → ConfigSection → ReviewsSection → Pillars → StartEngine → FinalCTA → Footer). Linked from v2 as `← v1` in the header.
+
+Both share the same `Hero` listing layout and `BuildSection` craft block — those two components are imported into v2 directly so the brand reads identically across versions. Treat §6 as the foundation and §10 as the cinematic remix that sits on top of it.
 
 ---
 
@@ -48,10 +72,25 @@ You will receive two raw asset packs from the user:
   ```
 - Resulting file: ~9–10 MB. Larger than the original but the only way scrubbing feels buttery.
 
-### 1c. Watermark warning
-If the source video / frames have an AI-generation watermark (e.g. "Veo"), crop the watermark off the frames with ffmpeg (`-vf "crop=W:H:X:Y"`) and the video the same way, before any of the steps above. Do NOT try to mask it with CSS — the user will notice.
+### 1c. A second MP4 — the "rider-on-bike → press start" cinematic
+- Source: ~6–10s clip showing a rider mounting the K7 in a dim workshop, instrument cluster waking up, hand reaching for the starter, and finally a thumb pressing the red ignition button.
+- This is the asset that drives **§10.6 LabIgnitionSequence** — the pre-ignition cinematic in v2. It's also scroll-scrubbed, so it needs the **same all-keyframe re-encode** as `bike-rotation.mp4`:
+  ```bash
+  ffmpeg -y -i "rider-source.mp4" \
+    -c:v libx264 -preset slow -crf 20 \
+    -g 1 -keyint_min 1 \
+    -an \
+    -pix_fmt yuv420p \
+    -movflags +faststart \
+    public/ignite-cinema.mp4
+  ```
+- Resulting file: ~6–8 MB.
+- The useful timeline ends before the very last frame (~76 % of duration in our source) — past that the starter has already been pressed and the visual is static. Map scroll progress to `0 → 0.76 × duration` to avoid scrolling into dead footage. See §10.6.
 
-### 1d. The source `assets/` folder is not committed
+### 1d. Watermark warning
+If any source video / frames have an AI-generation watermark (e.g. "Veo"), crop the watermark off the frames with ffmpeg (`-vf "crop=W:H:X:Y"`) and the video the same way, before any of the steps above. Do NOT try to mask it with CSS — the user will notice.
+
+### 1e. The source `assets/` folder is not committed
 Put a `/assets/` line in `.gitignore`. Only the processed outputs in `/public/` go to the repo. The full source assets are typically 150–250 MB which is too big for git.
 
 ---
@@ -129,36 +168,49 @@ Use **`[0.16, 1, 0.3, 1]`** (cubic-bezier) as the default `ease` for every entra
 src/
 ├── app/
 │   ├── layout.tsx          # Root layout. Mounts BootSplash + CustomCursor.
-│   ├── page.tsx            # Composes the 9 sections + SectionNav.
+│   ├── page.tsx            # / — v2 cinematic edition (§10).
+│   ├── original/
+│   │   ├── layout.tsx      # Metadata override for the v1 route.
+│   │   └── page.tsx        # /original — v1 classic dealer edition (§6).
 │   ├── globals.css         # Tailwind v4 @theme + global cursor:none rules.
 │   └── favicon.ico
 ├── components/
-│   ├── Header.tsx          # Fixed top nav + live Berlin clock.
-│   ├── ScrollShowcase.tsx  # SECTION 1 — scroll-scrubbing MP4 hero. LOCKED.
-│   ├── Hero.tsx            # SECTION 2 — 3-col listing layout. LOCKED.
+│   ├── Header.tsx          # v1 fixed top nav + live Berlin clock.
+│   ├── ScrollShowcase.tsx  # v1 SECTION 1 — scroll-scrubbing MP4 hero. LOCKED.
+│   ├── Hero.tsx            # SHARED — 3-col listing layout. LOCKED. Used by v1 and v2.
 │   ├── BikeViewer.tsx      # Controlled 60-frame drag rotator (used by Hero).
-│   ├── SpecsPanel.tsx      # Right column of Hero (used by Hero).
-│   ├── BuildSection.tsx    # SECTION 3 — "Built by hand. Not by machine."
-│   ├── ConfigSection.tsx   # SECTION 4 — color/exhaust/seat configurator.
-│   ├── ReviewsSection.tsx  # SECTION 5 — press cards + marquee logos.
-│   ├── Pillars.tsx         # SECTION 6 — sticky 3-scene scroll crossfade (Power / Refined / Yours).
-│   ├── StartEngine.tsx     # SECTION 7 — physical ignition button + dealer reveal.
-│   ├── FinalCTA.tsx        # SECTION 8 — aurora bg + email form.
-│   ├── Footer.tsx          # Big OBSIDIAN wordmark + 4-col links.
-│   ├── SmoothScroll.tsx    # Lenis wrapper.
+│   ├── SpecsPanel.tsx      # Right column of Hero.
+│   ├── BuildSection.tsx    # SHARED — "Built by hand. Not by machine." Used by v1 and v2.
+│   ├── ConfigSection.tsx   # v1 SECTION 4 — color/exhaust/seat configurator.
+│   ├── ReviewsSection.tsx  # v1 SECTION 5 — press cards + marquee logos.
+│   ├── Pillars.tsx         # v1 SECTION 6 — sticky 3-scene scroll crossfade.
+│   ├── StartEngine.tsx     # v1 SECTION 7 — physical ignition button + dealer reveal.
+│   ├── FinalCTA.tsx        # v1 SECTION 8 — aurora bg + email form.
+│   ├── Footer.tsx          # v1 — Big OBSIDIAN wordmark + 4-col links.
+│   ├── SmoothScroll.tsx    # Lenis wrapper. Exports useLenis() hook for v2.
+│   ├── lab/
+│   │   ├── LabHeader.tsx               # v2 header — slimmer, K7-focused, links to /original.
+│   │   ├── LabCinema.tsx               # v2 §10.2 — scroll-scrub bike intro with rotating chapter cards.
+│   │   ├── LabSpectrum.tsx             # v2 §10.4 — three-scene crossfading pillars.
+│   │   ├── LabAtelier.tsx              # v2 §10.5 — compact configurator block.
+│   │   ├── LabSignals.tsx              # v2 §10.6 — reviews + press marquee.
+│   │   ├── LabIgnitionSequence.tsx     # v2 §10.7 — pre-ignition video + handoff overlay.
+│   │   ├── LabIgnite.tsx               # v2 §10.8 — engine on/off state machine + dealer cards.
+│   │   └── LabClose.tsx                # v2 §10.9 — final CTA + footer.
 │   └── effects/
 │       ├── Reveal.tsx       # whileInView fade+slide wrapper.
 │       ├── RevealWords.tsx  # Word-by-word headline stagger.
 │       ├── Counter.tsx      # Number tween on first viewport entry.
 │       ├── Tilt3D.tsx       # Cursor-following 3D card tilt + gloss.
 │       ├── CustomCursor.tsx # Global dot + ring cursor.
-│       ├── SectionNav.tsx   # Right-side vertical pip nav (lg+ only).
+│       ├── SectionNav.tsx   # Right-side vertical pip nav (lg+, used by v1 only).
 │       └── BootSplash.tsx   # Intro screen with real preload progress.
 ├── lib/
 │   └── utils.ts             # cn() helper (clsx + tailwind-merge).
 public/
 ├── frames/f001.jpg … f060.jpg   # Hero rotation frames (copied from source).
-├── bike-rotation.mp4            # All-keyframe re-encoded scrubber.
+├── bike-rotation.mp4            # All-keyframe re-encoded 360° scrubber.
+├── ignite-cinema.mp4            # All-keyframe re-encoded rider-on-bike clip (§1c).
 └── hero-bike.jpg                # Fallback side-view frame.
 ```
 
@@ -166,7 +218,28 @@ public/
 
 ## 5. PAGE COMPOSITION
 
-`src/app/page.tsx`:
+### v2 — `src/app/page.tsx` (the home page the visitor lands on)
+
+```tsx
+<SmoothScroll>
+  <main className="min-h-screen bg-[#0a0a0a] text-white selection:bg-accent/30">
+    <LabHeader />
+    <LabCinema />
+    <Hero />            {/* shared with v1 — full 3-col listing */}
+    <BuildSection />    {/* shared with v1 — Built by hand */}
+    <LabSpectrum />
+    <LabAtelier />
+    <LabSignals />
+    <LabIgnitionSequence />
+    <LabIgnite />
+    <LabClose />
+  </main>
+</SmoothScroll>
+```
+
+Full spec in §10. The v2 page intentionally **does not mount `SectionNav`** — the cinematic rhythm doesn't want pip navigation interrupting it.
+
+### v1 — `src/app/original/page.tsx`
 
 ```tsx
 <SmoothScroll>
@@ -188,7 +261,9 @@ public/
 
 The wrapper divs carry the section ids so the locked components (`ScrollShowcase`, `Hero`) stay untouched.
 
-`src/app/layout.tsx` body content:
+`src/app/original/layout.tsx` overrides the page metadata so the v1 route reads as "OBSIDIAN MOTO · Original Experience" — the root layout's metadata is reserved for v2.
+
+### Shared root — `src/app/layout.tsx` body content:
 
 ```tsx
 <body className={`${fonts} bg-[#0a0a0a]`}>
@@ -566,14 +641,218 @@ npm run build
 npm run start
 ```
 
-Deploys to Vercel with zero configuration. The MP4 + 60 JPGs total ~12 MB of static assets in `/public/` — well within Vercel's limits.
+### Deployment — Netlify
+
+This site ships on **Netlify** via the official Next.js runtime. Two-file setup at the repo root:
+
+```toml
+# netlify.toml
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+```
+
+That's it — no per-route configuration, no edge function rewrites. The `@netlify/plugin-nextjs` plugin handles App Router routing, ISR, and image optimisation automatically. Push to `main` on the connected GitHub repo and Netlify rebuilds.
+
+Asset budget: the two re-encoded MP4s (`bike-rotation.mp4` ~9 MB + `ignite-cinema.mp4` ~11 MB) plus the 60 rotation JPGs total ~24 MB of static assets in `/public/` — comfortably under Netlify's per-deploy limits. Don't commit the raw `/assets/` source folder; it's in `.gitignore` and stays local.
 
 ---
 
-## 10. ONE-LINER FOR THE AGENT
+## 10. V2 — THE CINEMATIC PRODUCT PAGE *(this is the home page at `/`)*
+
+v2 is a re-edit of the same K7 page that treats the visit as a short film. The visitor lands on a scroll-scrubbed bike intro, walks through the brand's editorial story, then climbs through a pre-ignition cinematic that culminates in a single red button to press. It re-uses two pieces of v1 verbatim (`Hero` listing card + `BuildSection` craft block) and replaces everything else with `src/components/lab/*` components designed for one continuous read.
+
+Composition (top to bottom):
+
+1. **LabHeader** — slim sticky header. K7-focused branding, no nav rail, "← v1" link to `/original`.
+2. **LabCinema** — scroll-scrub MP4 hero with three chapter cards that rotate around the viewport (top-left → top-right → bottom on desktop, stacked at bottom on mobile).
+3. **Hero** *(shared from v1)* — the full 3-column dealer listing (`§6.3`). Used unchanged.
+4. **BuildSection** *(shared from v1)* — "Built by hand. Not by machine." (`§6.6`). Used unchanged.
+5. **LabSpectrum** — three-scene crossfading pillars (`SILHOUETTE / HEART / PRESENCE`).
+6. **LabAtelier** — compact configurator with paint + exhaust + seat selectors and an animated running total.
+7. **LabSignals** — owner reviews + animated press logo marquee.
+8. **LabIgnitionSequence** — pre-ignition video, scrubbed by scroll. Captions, cinematic handoff overlay with 3-2-1 countdown, smooth Lenis hand-off into the ignite section.
+9. **LabIgnite** — engine on/off state machine. Big red button, ECU telemetry, dealer cards revealed only while the engine is running.
+10. **LabClose** — final CTA + Footer.
+
+### 10.1 SmoothScroll exports `useLenis()` for the v2 handoff
+
+`src/components/SmoothScroll.tsx` must expose the live `Lenis` instance via a React context so v2 components can `lenis.scrollTo(target, { duration, easing })` for cinematic transitions (`LabIgnitionSequence` uses this to glide into `LabIgnite` after the countdown ends).
+
+```tsx
+const LenisContext = createContext<Lenis | null>(null);
+export function useLenis() {
+  return useContext(LenisContext);
+}
+```
+
+Wrap the `<Lenis>` provider in `<LenisContext.Provider value={lenis}>` so child components anywhere in the tree can pick it up. `useLenis()` returns `null` server-side; callers must handle that (`if (lenis) lenis.scrollTo(...) else fallback`).
+
+### 10.2 LabHeader — `src/components/lab/LabHeader.tsx`
+
+- Fixed top, `z-50`, slimmer than v1's `Header`: `py-5` (transparent) → `py-3` (after `scrollY > 40`, picks up `bg-[#0a0a0a]/90 backdrop-blur-lg border-b border-white/5`).
+- Brand block on the left: `OBSIDIAN MOTO` (serif italic) + `K7 · Berlin` mono eyebrow. Links to `/`.
+- Centre pill (hidden below `sm`): `● Berlin · {HH:MM} CET`, same live-clock pattern as v1. **Render `--:--` server-side** to avoid hydration mismatch.
+- Right side: `← v1` mono link to `/original` + `Reserve K7` accent pill that smooth-scrolls to `#reserve` (lives in `LabClose`).
+- No nav row, no cart. v2 deliberately strips the chrome — the cinematic is the focus.
+
+### 10.3 LabCinema — `src/components/lab/LabCinema.tsx`
+
+The v2 hero. Same scroll-scrub philosophy as v1's `ScrollShowcase` (§6.2), but the chapter cards **don't all live in the bottom corner** — they rotate around the viewport so each beat of the rotation owns a different quadrant. The bike does a 360° while the editorial copy choreographs around it.
+
+- Section height: `h-[220vh] md:h-[280vh]`, `bg-black`. Inner `sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center`.
+- The same `<video src="/bike-rotation.mp4">` element + rAF-throttled `currentTime` pump as `§6.2`. Mobile bike scale-up trick (inner div `scale-[1.3] md:scale-100`) survives.
+- Scroll progress drives a `bikeScale` ([0, 0.5, 1] → [1.08, 1, 1.05]), a vignette opacity ([0, 0.15, 0.85, 1] → [0.9, 0.5, 0.5, 0.9]), and a circular SVG scrub ring in the top-right corner whose `pathLength` runs 0 → 1 across the scroll.
+- Faint scanline texture overlay (`bg-[repeating-linear-gradient(...)] opacity-[0.04]`) sits above the video to give it the "screening room" feel.
+- **Three chapters, three quadrants.** Each chapter card is a `motion.article` driven by per-chapter `useTransform`s on `scrollYProgress` (ranges, opacity, y curves — same `isFirst` / `isLast` clamping pattern as v1's `ScrollShowcase`). What's new is the **`position` field** on each chapter:
+  - Chapter 1 `"K7 · 2024 — Born in darkness."` → `position: "top-left"` (range `[0, 0.05, 0.38, 0.44]`).
+  - Chapter 2 `"Powertrain — Torque you feel."` → `position: "top-right"` (range `[0.38, 0.44, 0.52, 0.58]`).
+  - Chapter 3 `"Finish — Light dies here."` → `position: "bottom"` (range `[0.52, 0.58, 0.95, 1]`).
+- **Layout rules (mobile vs desktop).** Mobile baseline for every card: `absolute inset-x-0 bottom-0 px-6 pb-28 text-center` (always anchored bottom-stacked so the bike stays unobstructed on portrait viewports). Desktop overrides only fire for the top-left / top-right cards:
+  - **top-left**: `md:bottom-auto md:right-auto md:top-[22%] md:left-12 lg:left-20 md:max-w-md lg:max-w-lg md:pb-0 md:text-left`.
+  - **top-right**: `md:bottom-auto md:left-auto md:top-[22%] md:right-12 lg:right-20 md:max-w-md lg:max-w-lg md:pb-0 md:text-right md:ml-auto` (and `md:ml-auto` on the inner body paragraph so it hugs the right edge).
+  - **bottom**: keeps the mobile baseline plus `md:pb-32 max-w-3xl mx-auto md:text-left`.
+- Title typography also adapts: top-anchored chapters use `text-4xl sm:text-5xl md:text-5xl lg:text-6xl` (smaller — they share screen space with the bike). The bottom chapter keeps the larger `md:text-7xl lg:text-8xl` since it owns the full width.
+- **Edge UI hides on desktop to make room for the chapter cards.** The eyebrow `01 · Cinema · Obsidian K7` in the top-left corner is `md:hidden` (the top-left chapter now occupies that quadrant). The 360° scrub ring on the right shrinks slightly on `md:+` (`md:w-12 md:h-12 lg:w-14 lg:h-14`) and hugs the corner tighter (`md:right-4 lg:right-6`).
+- Bottom progress strip (`SCROLL · CINEMA` + a 96 px line whose `scaleX = scrollYProgress`) survives unchanged.
+
+### 10.4 LabSpectrum — `src/components/lab/LabSpectrum.tsx`
+
+The v2 take on `Pillars` (§6.9). Same sticky-pinned scroll-crossfade structure, same `FADE = 0.05` overlap constant, same single-source-of-truth math for the colour stops. Three scenes:
+
+1. **SILHOUETTE** — "Carved / not poured." Body about the bobber profile + frame geometry. Tint: deep blue (`#3b82f6`).
+2. **HEART** — "The V-Twin / breathes." Body about the 1923cc engine + hand-tuned induction. Tint: ember (`#f97316`).
+3. **PRESENCE** — "Built to / be noticed." Body about the 24-unit allocation + the workshop. Tint: emerald (`#10b981`).
+
+The right-side stat column is rendered as a single tall serif-italic figure (e.g. `1 / 24`) with a mono caption underneath — no icon circle, matching the editorial restraint of v1's Pillars. Refactor the per-scene dot into a `SpectrumDot` sub-component so each dot's `width`/`opacity` transforms stay encapsulated.
+
+### 10.5 LabAtelier — `src/components/lab/LabAtelier.tsx`
+
+A condensed configurator. Same energy as v1's `ConfigSection` (§6.7) but tighter:
+
+- Eyebrow: `05 · Atelier`.
+- Single dark stage card containing the bike preview on the left and three selectors on the right (`Palette` / `Exhaust` / `Seat`).
+- Palette swatches use the same `{ filter, glow, bg, ring }` shape as v1. **Do NOT add a fifth swatch without a matte / muted counter-weight** (see v1 gotcha §17).
+- Total counter: `useMotionValue` + `animate(mv, value, { duration: 0.55, ease: [0.16, 1, 0.3, 1] })`. **Render the live total via `useState` + `useMotionValueEvent` rather than passing the `MotionValue<string>` straight into JSX** — TS will reject the latter, and the former is what survives strict mode.
+  ```tsx
+  const [display, setDisplay] = useState("34,900");
+  useMotionValueEvent(rounded, "change", (v) => setDisplay(v));
+  return <motion.span>€{display}</motion.span>;
+  ```
+
+### 10.6 LabSignals — `src/components/lab/LabSignals.tsx`
+
+The v2 take on `ReviewsSection` (§6.8). 3 owner-review cards in `<Tilt3D>` wrappers, a row of awards, and the infinite press-logo marquee. Eyebrow: `06 · Signals`. Visual rhythm is identical to v1; the only meaningful difference is the headline ("`What the road / has to say.`") and the slightly tighter card padding.
+
+### 10.7 LabIgnitionSequence — `src/components/lab/LabIgnitionSequence.tsx`
+
+**The hardest piece of v2.** A scroll-scrubbed second video (`/ignite-cinema.mp4`, §1c) showing a rider mounting the bike and reaching for the ignition button — ending in an automatic cinematic hand-off into `LabIgnite`. Read every word of this section before writing the component; it was rewritten three times.
+
+- Section: `h-[140vh] md:h-[180vh]`, `bg-black`. Inner `sticky top-0 h-screen w-full overflow-hidden`. Same RAF-throttled `currentTime` pump as `ScrollShowcase`.
+- **Scrub timeline.** The useful footage only runs `0 → 0.76` of the video's duration — past that the starter has already been pressed and the visual is dead. Use `VIDEO_TIMELINE_END = 0.76` and map `(p − 0.1) / 0.8` of the scroll to `0 → VIDEO_TIMELINE_END`. The first / last 10 % of scroll are dead-zone for caption entrance / exit.
+- **Four captions.** Each is a `motion.div` whose opacity + y are driven by a 4-tuple range. Sides alternate (`left, right, left, right`) and the copy reads as a single sales arc:
+  - `01 · The invitation` — "This could / be you." (`range: [0, 0.05, 0.36, 0.42]`, side left)
+  - `02 · Your machine` — "Built for / your hands." (right)
+  - `03 · The moment` — "Almost / yours." (left)
+  - `04 · Ready` — "The seat / is open." (right)
+- **Cinematic handoff overlay.** When `scrollYProgress` crosses `HANDOFF_AT = 0.95` for the first time per session, drop a full-bleed overlay (`bg-black/72 backdrop-blur-[3px]`) with the sales hero copy: `1 of 24 · Still available` pill → `You are ready / to ride.` italic h2 → `The Obsidian K7 is waiting. Press start — then meet us in Berlin.` subtitle → a `3 → 2 → 1` countdown rendered with `AnimatePresence mode="wait"` so each digit pops in.
+- **State machine guards.** Track the handoff with **two refs**:
+  - `handoffPlayed` — has the cinematic countdown been shown once already this session?
+  - `handoffActive` — is the countdown currently mid-flight?
+
+  And re-arm `handoffPlayed = false` when `scrollYProgress < 0.2` so scrolling all the way back to the top of the section lets the user replay the cinematic. If the user scrolls back up while the overlay is showing (`p < HANDOFF_RESET_BELOW = 0.6`), `clearHandoffTimers()` and reset state — they cancelled mid-countdown.
+- **Lenis-driven scroll-to-ignite.** When the countdown finishes, call:
+  ```tsx
+  const lenis = useLenis();
+  const scrollToIgnite = useCallback(() => {
+    const target = document.getElementById("ignite");
+    if (!target) return;
+    if (lenis) {
+      lenis.scrollTo(target, {
+        offset: -32,
+        duration: 0.7,
+        easing: (t) => 1 - Math.pow(1 - t, 4),
+      });
+    } else {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [lenis]);
+  ```
+  Do NOT pass `force: true` / `programmatic: true` to Lenis — they cause it to lock the user's wheel for the duration and the visit feels broken. The plain `scrollTo` is enough.
+- **Mobile bike scale-up trick survives** — wrap the `<video>` in an inner div with `scale-[1.25] md:scale-100` so the rider doesn't letterbox on portrait viewports.
+- A subtle red glow (`useTransform(scrollYProgress, [0.55, 0.85], [0, 1])`) blooms behind the bike as the cinematic approaches the ignition moment — gives the visitor an emotional preview of the red button that's about to appear in `LabIgnite`. Layer it `z-[1]`, behind everything.
+- Bottom progress strip: `SCROLL · IGNITION` + a 96 px gradient line (`from-amber-500/80 via-accent to-red-500`) whose `scaleX = scrollYProgress`. The colour ramp visually previews the temperature shift into the red-button section.
+
+### 10.8 LabIgnite — `src/components/lab/LabIgnite.tsx`
+
+The button is the climax. Same physical-looking ignition button as v1 (`§6.10`) with a four-state machine (`'idle' | 'starting' | 'running' | 'stopping'`), but with two structural differences:
+
+- **No sticky pinning.** An earlier iteration tried to pin the section so the button "anchored" in the centre of the viewport during the handoff — but a `sticky top-0 h-screen` stage with centred content leaves ~30vh of empty space below the content once the pin releases, which the visitor reads as a broken page. The fix: drop the pin entirely, keep the section as plain normal flow (`py-20 md:py-28`), and replicate the "focusing in" feel via a **scroll-driven scale + opacity + blur on the button cluster** instead:
+  ```tsx
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "center center"],
+  });
+  const focusScale = useTransform(scrollYProgress, [0.15, 0.7], [0.92, 1]);
+  const focusOpacity = useTransform(scrollYProgress, [0.15, 0.5], [0.4, 1]);
+  const focusBlurPx = useTransform(scrollYProgress, [0.15, 0.55], [6, 0]);
+  const focusBlur = useTransform(focusBlurPx, (b) => `blur(${b}px)`);
+  // → wrap the button + telemetry cluster in a motion.div with style={{ scale, opacity, filter: focusBlur }}
+  ```
+  Effect: the button materialises into focus as the user scrolls in from the rider-on-bike cinematic — visually feels "anchored" without any of the sticky-pinning empty-space problems.
+- **Engine can be turned off.** v1's `StartEngine` is a one-shot (press → animate to running → done). v2 adds a `stopping` state and lets the user press the now-running button to shut the engine down. Stopping plays the startup log in reverse and adds an `ENGINE STOP REQUESTED` line in muted white. The button's `animate` prop branches on state:
+  - `idle`: `scale: [1, 1.03, 1]` on a 2.4s loop.
+  - `starting`: `scale: [1.02, 1.1, 1.02]` on a 0.6s loop.
+  - `running`: tiny vibration (`x: [0, -1, 1, -1, 0], y: [0, 1, -1, 1, 0]`) on a 0.45s linear infinite loop.
+  - `stopping`: `scale: [1, 0.97, 1]` on a 1.4s loop, dome gradient darkened (`from-red-700 via-red-800 to-red-950 brightness-75`).
+- **Dealer cards hide when the engine is off.** Wrap the three contact cards in `<AnimatePresence>` keyed on `dealersVisible = state === "running"`. Use a `motion.div` (not a plain `div`) as the direct child of `AnimatePresence` so the `exit` animation runs cleanly. Cards slide up + collapse height on exit so the page doesn't leave a hole when the engine is turned off.
+- Ambient glow (`<motion.div animate={{ background: ... }} className="blur-[100px]">`) cross-fades between cool-blue (idle / stopping) and warm-red (starting / running) gradients on a 1s tween.
+
+### 10.9 LabClose — `src/components/lab/LabClose.tsx`
+
+Final CTA + footer in one component:
+
+- Eyebrow: `08 · Reserve`.
+- Centred italic headline (`Your seat / in the workshop.`) + body copy about the 24-unit cohort.
+- Email reservation form: `bg-black/40 border border-white/15 backdrop-blur-sm` input + a `Reserve →` accent pill.
+- Below the form: 3 reassurance stats (allocation / shipping / warranty).
+- Footer block: big `OBSIDIAN` wordmark (`text-[14vw] tracking-[-0.05em]`, same gradient text-clip as v1's Footer), 4-column links grid, social icons row (use the `lucide-react` 1.16 substitutes from §6.12), `← v1 experience` link to `/original`, and a `Back to top` anchor that scrolls to `#cinema`.
+
+---
+
+## 11. V2 LESSONS LEARNED — additional gotchas
+
+These were learned specifically while building the v2 cinematic. They sit on top of the v1 gotchas in §8.
+
+22. **`sticky top-0 h-screen` is the wrong tool for "anchor the button during the handoff".** A naive instinct after watching v1's `ScrollShowcase` work so well is to reach for `sticky h-screen` on `LabIgnite` so the button pins to the viewport while the user scrolls in. It fails: the button + telemetry cluster only occupies ~70vh of vertical space, and a `flex items-center justify-center` stage in a 100vh sticky leaves 15vh of empty space above the content and 15vh below. The bottom empty space is what the user *sees* as soon as the pin releases — it reads as "the page broke". Either shrink the stage to fit the content (loses the centred-during-pin look), or — what we did — drop the pin entirely and replicate the "anchor" feel with a scroll-driven `scale + opacity + blur` ramp on the button cluster (see §10.8). The visual result is the same; the layout problem disappears.
+
+23. **For a scroll-scrubbed video that ends on a static frame, clip the timeline.** `ignite-cinema.mp4` keeps showing the same "starter pressed" frame for the last ~24 % of its duration. If you map `scrollYProgress 0 → 1` to the full video duration, the bottom quarter of the section scrolls through a frozen image and the visitor wonders if the page broke. Use a `VIDEO_TIMELINE_END = 0.76` constant and map scroll into `t * VIDEO_TIMELINE_END`. The dead tail of the source never plays.
+
+24. **One-shot cinematic transitions need `sessionStorage` *and* a ref-based "armed" flag.** The handoff overlay in `LabIgnitionSequence` should play once per session, then never again unless the user scrolls all the way back to the top of the section. Track this with TWO state primitives:
+    - `handoffPlayed` (ref) — has the cinematic completed at least once in this mount?
+    - `handoffActive` (ref) — is the countdown currently mid-flight?
+
+    Re-arm `handoffPlayed = false` when `scrollYProgress < 0.2` (the user scrolled all the way back to the top of the section and is going for a second pass). Bail out of the active countdown if the user scrolls back up past `HANDOFF_RESET_BELOW = 0.6` mid-flight — they cancelled. **Do not** rely on a single `useState` boolean for both; the timing of state updates vs scroll events leaks edge cases where the overlay either replays mid-scroll or never fires on the first pass.
+
+25. **`lenis.scrollTo` must not be called with `force: true`, `programmatic: true`, or `immediate: true` inside a cinematic handoff.** Each of those flags either locks the user's wheel for the duration of the tween (`force`) or skips the tween entirely without firing `onComplete` (`immediate`), which leaves your handoff state machine stuck in the "traveling" phase. Use a plain `lenis.scrollTo(target, { offset, duration: 0.7, easing })` and let the user keep wheel control throughout. Add a safety `setTimeout` that calls `releaseHandoff()` after `duration + 100ms` in case the `onComplete` callback never fires.
+
+26. **`useLenis()` must handle SSR null.** The `Lenis` instance only exists on the client. Every component that consumes `useLenis()` must guard with `if (lenis) … else fallback`, and the fallback should be a synchronous, non-Lenis path (`target.scrollIntoView({ behavior: "smooth", block: "start" })`). Don't `throw` if Lenis is null — server-rendered v2 should still output static HTML cleanly.
+
+27. **`AnimatePresence` exit animations need a `motion.*` element as the **direct** child, not a wrapping `div`.** While porting the dealer cards onto the `dealersVisible` toggle in `LabIgnite`, an intermediate refactor wrapped them in `<AnimatePresence><div className="container">{cards && <motion.div>...</motion.div>}</div></AnimatePresence>`. Exit animations silently stopped firing — the cards just snapped out. Move the container classes onto the `motion.div` itself and put it as the direct child of `AnimatePresence`. (Same rule as Framer Motion v6+, easy to forget when refactoring.)
+
+28. **Rotating chapter card positions need three constraints, not just `top` / `bottom`.** When `LabCinema` puts chapter 1 in the top-left and chapter 2 in the top-right on desktop, you must explicitly reset the **other side** of the inset (`md:right-auto` on the top-left card, `md:left-auto` on the top-right) — otherwise the mobile baseline's `inset-x-0` keeps both edges anchored and the card stretches the full viewport width on `md:+`. The full override per top-anchored card is `md:bottom-auto md:<other-side>-auto md:top-[22%] md:<own-side>-12 lg:<own-side>-20 md:max-w-md lg:max-w-lg`. Same idea applies to any responsive layout that rebases an absolutely-positioned element from one anchor to another.
+
+29. **The v1 and v2 routes share the same `BootSplash` preload list.** `BootSplash` mounts in the root `layout.tsx`, so it preloads the v1 hero rotation frames + `/bike-rotation.mp4` on every page visit, including `/`. That's fine — the v2 home reuses both assets (in `LabCinema` and inside `Hero`/`BikeViewer`). If you ever swap v2's hero video, update `BootSplash`'s preload target list or the splash will hand off before the v2 video is ready.
+
+---
+
+## 12. ONE-LINER FOR THE AGENT
 
 If you want to drop this to an AI assistant as a single instruction:
 
-> Build a Next.js 16 + Tailwind v4 + Framer Motion 12 single-page landing for a fictional premium custom motorcycle brand called Obsidian Moto, following PROMPT.md exactly. The user will provide a folder of ~200 JPG frames of the bike rotating 360° and a ~7s MP4 of the same rotation. Process the assets per §1 (copy frames straight, re-encode video with `-g 1` for keyframe-on-every-frame scrubbing). Build the 9 sections in §6 in order, leaning on the effects toolkit in §7. Read §8 (gotchas) twice before writing the first line of `BikeViewer.tsx`, `ScrollShowcase.tsx`, or `Pillars.tsx`. Use `[0.16, 1, 0.3, 1]` as the universal easing. Don't `Math.random()` in render. Don't try to "improve" ScrollShowcase or Hero once they work.
+> Build a Next.js 16 + Tailwind v4 + Framer Motion 12 + Lenis 1.3 single-page landing for a fictional premium custom motorcycle brand called Obsidian Moto, following PROMPT.md exactly. The site ships in two routes: **`/` is the v2 cinematic edition** (LabCinema → Hero → BuildSection → LabSpectrum → LabAtelier → LabSignals → LabIgnitionSequence → LabIgnite → LabClose, spec'd in §10) and **`/original` is the v1 classic dealer edition** (the 9-section layout in §6). The user will provide a folder of ~200 JPG frames of the bike rotating 360°, a ~7s MP4 of the same rotation, and a second ~6–10s MP4 of a rider mounting the bike and reaching for the starter. Process all three per §1 (copy frames straight, re-encode both videos with `-g 1` for keyframe-on-every-frame scrubbing into `/public/bike-rotation.mp4` and `/public/ignite-cinema.mp4`). Build v1's nine sections in §6 first, then build v2's nine lab/* components on top in §10. Read §8 (v1 gotchas) AND §11 (v2 gotchas) twice before writing the first line of `BikeViewer.tsx`, `ScrollShowcase.tsx`, `Pillars.tsx`, `LabCinema.tsx`, `LabIgnitionSequence.tsx`, or `LabIgnite.tsx`. Use `[0.16, 1, 0.3, 1]` as the universal easing. Don't `Math.random()` in render. Don't pin `LabIgnite` with `sticky h-screen`. Don't pass `force: true` / `immediate: true` to `lenis.scrollTo`. Don't try to "improve" ScrollShowcase or Hero once they work.
 
 That's the whole brief. Go.

@@ -24,8 +24,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OBSIDIAN MOTO | Premium Custom Motorcycles",
-  description: "Hand-built custom motorcycles. Matte black on dark chrome. The blackest ride.",
+  title: "OBSIDIAN MOTO · K7 · Berlin",
+  description:
+    "Hand-built custom motorcycles from Berlin. The Obsidian K7 — matte black, 1923cc V-Twin, 24 units. A cinematic product experience.",
 };
 
 export default function RootLayout({
